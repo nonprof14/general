@@ -7,6 +7,7 @@
 //
 // Example output:
 // {
+//   "tittel": "Thereses gate 33 A - Ombygging til 3 leiligheter",
 //   "hasKeywords": true,
 //   "foundKeywords": ["ombygging", "leiligheter"],
 //   "matches": [...],
@@ -128,6 +129,7 @@ for (let item of $input.all()) {
 
   // Store results in the item
   item.json.tittelKeywordCheck = {
+    tittel: tittel,
     hasKeywords: foundKeywords.length > 0 || patternMatches.length > 0,
     foundKeywords: foundKeywords,
     matches: matches,
