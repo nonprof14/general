@@ -16,6 +16,26 @@
 // }
 // ============================================
 
+// Helper function to normalize text and handle encoding issues
+function normalizeText(text) {
+  // Replace common mojibake patterns for Norwegian characters
+  return text
+    .replace(/�/g, '[øåæÆØÅ]')  // Replace � with character class
+    .toLowerCase();
+}
+
+// Helper function to create regex-safe pattern that handles encoding issues
+function createFlexiblePattern(keyword) {
+  // Replace Norwegian characters with patterns that match both correct and mojibake versions
+  return keyword
+    .replace(/ø/g, '(?:ø|�)')
+    .replace(/Ø/g, '(?:Ø|�)')
+    .replace(/å/g, '(?:å|�)')
+    .replace(/Å/g, '(?:Å|�)')
+    .replace(/æ/g, '(?:æ|�)')
+    .replace(/Æ/g, '(?:Æ|�)');
+}
+
 // Define keyword groups
 const keywords = {
   ombygging: [
@@ -54,7 +74,7 @@ const keywords = {
   ]
 };
 
-// Pattern matchers for number-based patterns
+// Pattern matchers for number-based patterns (with encoding-safe patterns)
 const patterns = [
   {
     name: "fra_til_leilighet",
@@ -67,6 +87,12 @@ const patterns = [
     description: "til [number] leiligheter"
   }
 ];
+
+// Create encoding-safe versions of patterns
+const encodingSafePatterns = patterns.map(p => ({
+  ...p,
+  regex: new RegExp(createFlexiblePattern(p.regex.source), 'gi')
+}));
 
 // Process each item
 for (let item of $input.all()) {
@@ -82,8 +108,9 @@ for (let item of $input.all()) {
   // Search for simple keywords
   for (const [category, keywordList] of Object.entries(keywords)) {
     for (const keyword of keywordList) {
-      // Case-insensitive search
-      const regex = new RegExp(keyword, 'gi');
+      // Create flexible pattern that handles encoding issues
+      const flexiblePattern = createFlexiblePattern(keyword);
+      const regex = new RegExp(flexiblePattern, 'gi');
       const keywordMatches = plainText.match(regex);
 
       if (keywordMatches && keywordMatches.length > 0) {
@@ -91,14 +118,15 @@ for (let item of $input.all()) {
         matches.push({
           keyword: keyword,
           category: category,
-          count: keywordMatches.length
+          count: keywordMatches.length,
+          actualMatches: [...new Set(keywordMatches)]  // Show unique matches found
         });
       }
     }
   }
 
-  // Search for pattern-based keywords
-  for (const pattern of patterns) {
+  // Search for pattern-based keywords (using encoding-safe patterns)
+  for (const pattern of encodingSafePatterns) {
     const patternMatchResults = [...plainText.matchAll(pattern.regex)];
 
     if (patternMatchResults.length > 0) {
