@@ -13,40 +13,48 @@
 // }
 // ============================================
 
+// Helper function to clean HTML and entities
+function cleanText(text) {
+  return text
+    .replace(/<[^>]*>/g, '')           // Remove HTML tags
+    .replace(/&nbsp;/g, ' ')           // Replace &nbsp; with space
+    .replace(/&amp;/g, '&')            // Replace &amp; with &
+    .replace(/\s+/g, ' ')              // Replace multiple spaces with single space
+    .trim();                           // Trim whitespace
+}
+
 // Process each item
 for (let item of $input.all()) {
   const html = item.json.html;
   const results = [];
 
-  // Find all table rows
-  const trMatches = html.matchAll(/<tr[^>]*>([\s\S]*?)<\/tr>/gi);
+  // Find all table rows with onclick attribute (to filter actual data rows)
+  const trMatches = html.matchAll(/<tr[^>]*onclick[^>]*>([\s\S]*?)<\/tr>/gi);
 
   for (const trMatch of trMatches) {
-    const rowHtml = trMatch[1];
+    const rowHtml = trMatch[0];
 
     // Extract all td elements from this row
     const tdMatches = [...rowHtml.matchAll(/<td[^>]*>([\s\S]*?)<\/td>/gi)];
 
     if (tdMatches.length >= 3) {
-      // Extract Saksnummer (first td, after the image tag)
-      const saksnummerTd = tdMatches[0][1];
-      const saksnummerMatch = saksnummerTd.match(/(\d+)/);
-      const saksnummer = saksnummerMatch ? saksnummerMatch[1].trim() : '';
+      // Extract Saksnummer (first td - contains image and number)
+      const saksnummerText = cleanText(tdMatches[0][0]);
+      const saksnummerMatch = saksnummerText.match(/\d+/);
+      const saksnummer = saksnummerMatch ? saksnummerMatch[0] : '';
 
       // Extract Tittel (second td)
-      const tittelTd = tdMatches[1][1];
-      const tittel = tittelTd.replace(/<[^>]*>/g, '').trim();
+      const tittel = cleanText(tdMatches[1][0]);
 
       // Extract Status (third td)
-      const statusTd = tdMatches[2][1];
-      const status = statusTd.replace(/<[^>]*>/g, '').trim();
+      const status = cleanText(tdMatches[2][0]);
 
       // Only add if we have valid data
       if (saksnummer && tittel && status) {
         results.push({
-          saksnummer: saksnummer,
+          status: status,
           tittel: tittel,
-          status: status
+          saksnummer: saksnummer
         });
       }
     }
