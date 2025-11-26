@@ -29,6 +29,9 @@ const links = saksnummers.map(saksnummer =>
 return [{
   json: {
     links: links.join(', '),
-    linkCount: links.length
+    linkCount: links.length,
+    debug_saksnummersString: saksnummersString,
+    debug_saksnummersArray: JSON.stringify(saksnummers),
+    debug_linksArray: JSON.stringify(links)
   }
 }];
