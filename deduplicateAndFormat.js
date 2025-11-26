@@ -34,8 +34,11 @@ for (let record of items) {
   for (let i = 0; i < saksnummerArray.length; i++) {
     const saksnummer = saksnummerArray[i];
 
-    // Skip if empty
-    if (!saksnummer) continue;
+    // Skip if empty or invalid - be very explicit
+    if (!saksnummer || saksnummer.toString().trim() === '') continue;
+
+    // Ensure saksnummer is a string and trim it
+    const cleanSaksnummer = saksnummer.toString().trim();
 
     // Get corresponding values
     const tittel = tittelArray[i] || '';
@@ -46,17 +49,17 @@ for (let record of items) {
     const allKeywords = Array.isArray(keywordsForThisItem) ? keywordsForThisItem : [];
 
     // If saksnummer already exists, merge keywords
-    if (deduplicatedMap.has(saksnummer)) {
-      const existing = deduplicatedMap.get(saksnummer);
+    if (deduplicatedMap.has(cleanSaksnummer)) {
+      const existing = deduplicatedMap.get(cleanSaksnummer);
 
       // Merge keywords and remove duplicates
       const mergedKeywords = [...new Set([...existing.foundKeywords, ...allKeywords])];
       existing.foundKeywords = mergedKeywords;
     } else {
       // Create new entry with unique keywords
-      deduplicatedMap.set(saksnummer, {
-        saksnummer: saksnummer,
-        link: `https://innsyn.pbe.oslo.kommune.no/saksinnsyn/casedet.asp?mode=&caseno=${saksnummer}`,
+      deduplicatedMap.set(cleanSaksnummer, {
+        saksnummer: cleanSaksnummer,
+        link: `https://innsyn.pbe.oslo.kommune.no/saksinnsyn/casedet.asp?mode=&caseno=${cleanSaksnummer}`,
         tittel: tittel,
         status: status,
         foundKeywords: [...new Set(allKeywords)]  // Remove duplicates
@@ -68,8 +71,10 @@ for (let record of items) {
 // Convert map to array
 const results = Array.from(deduplicatedMap.values());
 
-// Collect all links
-const allLinks = results.map(r => r.link);
+// Filter out any results without valid saksnummer and collect links
+const allLinks = results
+  .filter(r => r.saksnummer && r.saksnummer.trim() !== '')
+  .map(r => r.link);
 
 // Collect all unique keywords from all results
 const allKeywordsSet = new Set();
@@ -85,6 +90,8 @@ return [{
   json: {
     links: allLinks.join(', '),
     foundKeywords: uniqueKeywords.join(', '),
-    keywordCount: uniqueKeywords.length
+    keywordCount: uniqueKeywords.length,
+    debug_resultsCount: results.length,
+    debug_saksnummers: results.map(r => r.saksnummer).join(', ')
   }
 }];
