@@ -21,34 +21,47 @@ const items = $input.first().json.array || [];
 
 // Process each record in the array
 for (let record of items) {
-  const saksnummer = record.saksnummer;
+  // Each field is an array, extract the values
+  const saksnummerArray = record.saksnummer || [];
+  const tittelArray = record.tittel || [];
+  const statusArray = record.status || [];
+  const foundKeywordsTittelArray = record.foundKeywordsTittel || [];
 
-  // Skip if no saksnummer
-  if (!saksnummer) continue;
+  // Skip if no saksnummer values
+  if (saksnummerArray.length === 0) continue;
 
-  // Collect all keywords from different sources
-  const allKeywords = [
-    ...(record.foundKeywordsTittel || []),
-    ...(record.foundKeywords || []),
-    ...(record.foundKeywordsSubpage || [])
-  ];
+  // Process each saksnummer (there might be duplicates within the same record)
+  for (let i = 0; i < saksnummerArray.length; i++) {
+    const saksnummer = saksnummerArray[i];
 
-  // If saksnummer already exists, merge keywords
-  if (deduplicatedMap.has(saksnummer)) {
-    const existing = deduplicatedMap.get(saksnummer);
+    // Skip if empty
+    if (!saksnummer) continue;
 
-    // Merge keywords and remove duplicates
-    const mergedKeywords = [...new Set([...existing.foundKeywords, ...allKeywords])];
-    existing.foundKeywords = mergedKeywords;
-  } else {
-    // Create new entry with unique keywords
-    deduplicatedMap.set(saksnummer, {
-      saksnummer: saksnummer,
-      link: `https://innsyn.pbe.oslo.kommune.no/saksinnsyn/casedet.asp?mode=&caseno=${saksnummer}`,
-      tittel: record.tittel || '',
-      status: record.status || '',
-      foundKeywords: [...new Set(allKeywords)]  // Remove duplicates
-    });
+    // Get corresponding values
+    const tittel = tittelArray[i] || '';
+    const status = statusArray[i] || '';
+
+    // foundKeywordsTittel is an array of arrays, flatten it
+    const keywordsForThisItem = foundKeywordsTittelArray[i] || [];
+    const allKeywords = Array.isArray(keywordsForThisItem) ? keywordsForThisItem : [];
+
+    // If saksnummer already exists, merge keywords
+    if (deduplicatedMap.has(saksnummer)) {
+      const existing = deduplicatedMap.get(saksnummer);
+
+      // Merge keywords and remove duplicates
+      const mergedKeywords = [...new Set([...existing.foundKeywords, ...allKeywords])];
+      existing.foundKeywords = mergedKeywords;
+    } else {
+      // Create new entry with unique keywords
+      deduplicatedMap.set(saksnummer, {
+        saksnummer: saksnummer,
+        link: `https://innsyn.pbe.oslo.kommune.no/saksinnsyn/casedet.asp?mode=&caseno=${saksnummer}`,
+        tittel: tittel,
+        status: status,
+        foundKeywords: [...new Set(allKeywords)]  // Remove duplicates
+      });
+    }
   }
 }
 
