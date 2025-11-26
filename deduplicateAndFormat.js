@@ -3,18 +3,13 @@
 // ============================================
 // Paste this code into an n8n Code Node
 // Input: Array of items with saksnummer and keywords
-// Output: Deduplicated items with links and merged keywords
+// Output: Single item with all links and keywords as comma-separated strings
 //
 // Example output:
-// [
-//   {
-//     "saksnummer": "202556586",
-//     "link": "https://innsyn.pbe.oslo.kommune.no/saksinnsyn/casedet.asp?mode=&caseno=202556586",
-//     "tittel": "Thereses gate 33 A - Pergola over eksisterende uteservering",
-//     "status": "Avsluttet",
-//     "foundKeywords": ["deling", "leilighet"]
-//   }
-// ]
+// {
+//   "links": "https://innsyn.pbe.oslo.kommune.no/saksinnsyn/casedet.asp?mode=&caseno=202556586, https://innsyn.pbe.oslo.kommune.no/saksinnsyn/casedet.asp?mode=&caseno=202507347",
+//   "foundKeywords": "deling, omgjøring, leilighet"
+// }
 // ============================================
 
 // Map to store deduplicated results by saksnummer
@@ -58,7 +53,22 @@ for (let item of $input.all()) {
   }
 }
 
-// Convert map to array and return as n8n items
+// Convert map to array
 const results = Array.from(deduplicatedMap.values());
 
-return results.map(result => ({ json: result }));
+// Collect all links
+const allLinks = results.map(r => r.link);
+
+// Collect all unique keywords from all results
+const allKeywordsSet = new Set();
+results.forEach(r => {
+  r.foundKeywords.forEach(keyword => allKeywordsSet.add(keyword));
+});
+
+// Return single item with comma-separated strings
+return [{
+  json: {
+    links: allLinks.join(', '),
+    foundKeywords: Array.from(allKeywordsSet).join(', ')
+  }
+}];
